@@ -1,4 +1,13 @@
 import stripe from '../../stripe-lib/stripe'
+import {
+  addNewClientToDb,
+  updateDbWhenInvoicePaid,
+  updateDbWhenPaymentFailed
+} from '../../firebase-lib/db-functions'
+import {
+  sendEmailsAfterCheckout,
+  sendEmailsAfterPaymentFailed
+} from '../../sendgrid-lib/sendgrid-functions'
 
 const DOMAIN = 'http://localhost:3000/'
 
@@ -6,7 +15,7 @@ export default async function handler (req, res) {
   let data
   let eventType
   // Check if webhook signing is configured.
-  // const webhookSecret = {{'STRIPE_WEBHOOK_SECRET'}}
+  const webhookSecret = ''
   if (webhookSecret) {
     // Retrieve the event by verifying the signature using the raw body and secret.
     let event
@@ -16,7 +25,7 @@ export default async function handler (req, res) {
       event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret)
     } catch (err) {
       console.log(`⚠️  Webhook signature verification failed.`)
-      return res.sendStatus(400)
+      return res.status(400).send('ERROR')
     }
     // Extract the object from the event.
     data = event.data
@@ -28,24 +37,82 @@ export default async function handler (req, res) {
     eventType = req.body.type
   }
 
+  let customerStripeId
+  let customerEmail
+  let customerName
+
   switch (eventType) {
     case 'checkout.session.completed':
-      // Payment is successful and the subscription is created.
-      // You should provision the subscription and save the customer ID to your database.
+      console.log('checkout.session.completed event received')
+
+      customerStripeId = data.object.customer
+      customerEmail = data.object.customer_details.email
+
+      // Add new user to database
+      try {
+        await addNewClientToDb(customerStripeId, customerEmail)
+        isAddedToDb = true
+      } catch (error) {
+        console.error('Error adding document: ', error)
+        return res.status(400).send('Error adding to DB')
+      }
+
+      // Send email
+      try {
+        await sendEmailsAfterCheckout(customerEmail)
+      } catch (error) {
+        console.error(`Error sending email: ${error}`)
+        return res.status(400).send('Error sending emails')
+      }
+
       break
+
     case 'invoice.paid':
-      // Continue to provision the subscription as payments continue to be made.
       // Store the status in your database and check when a user accesses your service.
       // This approach helps you avoid hitting rate limits.
+      console.log('invoice.paid event received')
+
+      customerStripeId = data.object.customer
+      customerName = data.object.customer_name
+
+      // update db with name (since name can only be retreived from this event)
+      try {
+        await updateDbWhenInvoicePaid(customerStripeId, customerName)
+      } catch (error) {
+        console.error(`Error updating document: ${error}`)
+        return res.status(400).send('Error updating db.')
+      }
+
       break
+
     case 'invoice.payment_failed':
-      // The payment failed or the customer does not have a valid payment method.
       // The subscription becomes past_due. Notify your customer and send them to the
       // customer portal to update their payment information.
+      console.log('Invoice payment failed webhook received.')
+
+      customerStripeId = data.object.customer
+      customerEmail = data.object.customer_email
+
+      // update db about payment failure
+      try {
+        await updateDbWhenPaymentFailed(customerStripeId)
+      } catch (error) {
+        console.error(`Error updating document: ${error}`)
+        return res.status(400).send('Error updating db.')
+      }
+
+      // send emails
+      try {
+        await sendEmailsAfterPaymentFailed(customerEmail)
+      } catch (error) {
+        console.error(`Error sending email: ${error}`)
+        return res.status(400).send('Error sending emails')
+      }
+
       break
     default:
     // Unhandled event type
   }
 
-  res.sendStatus(200)
+  res.status(200).send('OK')
 }
