@@ -5,7 +5,7 @@ const sendEmailsAfterCheckout = async customerEmail => {
     to: 'payments.realmohsin@gmail.com', // Change to your recipient
     from: 'real@realmohsin.com', // Change to your verified sender
     subject: 'Checkout Session Completed By A Client',
-    text: 'text here',
+    text: 'expect invoice.paid email soon',
     html: '<strong>strong html</strong>'
   }
   const msgToClient = {
@@ -13,11 +13,12 @@ const sendEmailsAfterCheckout = async customerEmail => {
     from: 'real@realmohsin.com', // Change to your verified sender
     subject: 'Web Development Service - Real Mohsin',
     text:
-      'Your payment was successfully paid. If you have any questions or concerns contact me at ...',
+      'Your checkout was complete. If everything went successfully you should be good to go.',
     html: '<strong>strong html</strong>'
   }
   await sgMail.send(msgToMe)
   await sgMail.send(msgToClient)
+  // await sgMail.send(msgToClient)
   console.log(`Emails sent for checkout completed`)
 }
 
@@ -26,7 +27,7 @@ const sendEmailsAfterPaymentFailed = async customerEmail => {
     to: 'payments.realmohsin@gmail.com', // Change to your recipient
     from: 'real@realmohsin.com', // Change to your verified sender
     subject: 'An Invoice Payment Has Failed',
-    text: 'Invoice payment has failed',
+    text: 'A customers invoice payment has failed',
     html: '<strong>strong html</strong>'
   }
   const msgToClient = {

@@ -39,7 +39,6 @@ export default async function handler (req, res) {
 
   let customerStripeId
   let customerEmail
-  let customerName
 
   switch (eventType) {
     case 'checkout.session.completed':
@@ -51,7 +50,6 @@ export default async function handler (req, res) {
       // Add new user to database
       try {
         await addNewClientToDb(customerStripeId, customerEmail)
-        isAddedToDb = true
       } catch (error) {
         console.error('Error adding document: ', error)
         return res.status(400).send('Error adding to DB')
@@ -73,11 +71,10 @@ export default async function handler (req, res) {
       console.log('invoice.paid event received')
 
       customerStripeId = data.object.customer
-      customerName = data.object.customer_name
 
-      // update db with name (since name can only be retreived from this event)
+      // update with paymentProblem: false
       try {
-        await updateDbWhenInvoicePaid(customerStripeId, customerName)
+        await updateDbWhenInvoicePaid(customerStripeId)
       } catch (error) {
         console.error(`Error updating document: ${error}`)
         return res.status(400).send('Error updating db.')
