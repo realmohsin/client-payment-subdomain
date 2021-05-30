@@ -1,5 +1,14 @@
 import db from './db-setup'
 
+const checkIsClientInDb = async customerStripeId => {
+  const clientsRef = db.collection('clients')
+  const snapshot = await clientsRef
+    .where('customerStripeId', '==', customerStripeId)
+    .get()
+
+  return !snapshot.empty
+}
+
 const addNewClientToDb = async (customerStripeId, customerEmail) => {
   const clientsRef = db.collection('clients')
   const snapshot = await clientsRef
@@ -11,7 +20,6 @@ const addNewClientToDb = async (customerStripeId, customerEmail) => {
     const docRef = await clientsRef.add({
       customerStripeId,
       email: customerEmail,
-      name: '',
       paymentProblem: false
     })
     console.log('Document written with ID: ', docRef.id)
@@ -48,4 +56,9 @@ const updateDbWhenPaymentFailed = async customerStripeId => {
   )
 }
 
-export { addNewClientToDb, updateDbWhenInvoicePaid, updateDbWhenPaymentFailed }
+export {
+  checkIsClientInDb,
+  addNewClientToDb,
+  updateDbWhenInvoicePaid,
+  updateDbWhenPaymentFailed
+}

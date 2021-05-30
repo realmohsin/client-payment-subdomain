@@ -1,5 +1,6 @@
 import stripe from '../../stripe-lib/stripe'
 import {
+  checkIsClientInDb,
   addNewClientToDb,
   updateDbWhenInvoicePaid,
   updateDbWhenPaymentFailed
@@ -89,6 +90,16 @@ export default async function handler (req, res) {
 
       customerStripeId = data.object.customer
       customerEmail = data.object.customer_email
+
+      const isClientInDb = await checkIsClientInDb(customerStripeId)
+
+      if (!isClientInDb) {
+        // if client not in db, it means payment failure is coming from checkout portal attempts
+        console.log(
+          'invoice.payment_failed event triggered due to manual card rejection in checkout portal'
+        )
+        return res.status(200).send('OK')
+      }
 
       // update db about payment failure
       try {
