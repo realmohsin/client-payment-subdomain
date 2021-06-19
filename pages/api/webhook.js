@@ -1,13 +1,15 @@
-import stripe from '../../stripe-lib/stripe'
+import stripeForServer from '../../stripe-lib/stripe'
 import {
   checkIsClientInDb,
   addNewClientToDb,
   updateDbWhenInvoicePaid,
-  updateDbWhenPaymentFailed
+  updateDbWhenPaymentFailed,
+  updateDbWhenSubCanceled
 } from '../../firebase-lib/db-functions'
 import {
   sendEmailsAfterCheckout,
-  sendEmailsAfterPaymentFailed
+  sendEmailsAfterPaymentFailed,
+  sendEmailsAfterSubCanceled
 } from '../../sendgrid-lib/sendgrid-functions'
 
 const DOMAIN = 'http://localhost:3000/'
@@ -23,7 +25,11 @@ export default async function handler (req, res) {
     let signature = req.headers['stripe-signature']
 
     try {
-      event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret)
+      event = stripeForServer.webhooks.constructEvent(
+        req.body,
+        signature,
+        webhookSecret
+      )
     } catch (err) {
       console.log(`⚠️  Webhook signature verification failed.`)
       return res.status(400).send('ERROR')
@@ -48,9 +54,11 @@ export default async function handler (req, res) {
       customerStripeId = data.object.customer
       customerEmail = data.object.customer_details.email
 
+      const isSubscription = data.object.mode === 'subscription'
+
       // Add new user to database
       try {
-        await addNewClientToDb(customerStripeId, customerEmail)
+        await addNewClientToDb(customerStripeId, customerEmail, isSubscription)
       } catch (error) {
         console.error('Error adding document: ', error)
         return res.status(400).send('Error adding to DB')
@@ -118,6 +126,29 @@ export default async function handler (req, res) {
       }
 
       break
+
+    case 'customer.subscription.deleted':
+      console.log('customer.subscription.deleted event received.')
+
+      customerStripeId = data.object.customer
+      customerEmail = data.object.customer_email
+
+      // update db about subscription being canceled
+      try {
+        await updateDbWhenSubCanceled(customerStripeId)
+      } catch (error) {
+        console.error(`Error updating document: ${error}`)
+        return res.status(400).send('Error updating db.')
+      }
+
+      // send emails about subscription cancelation
+      try {
+        await sendEmailsAfterSubCanceled(customerStripeId, customerEmail)
+      } catch (error) {
+        console.error(`Error sending email: ${error}`)
+        return res.status(400).send('Error sending emails')
+      }
+
     default:
     // Unhandled event type
   }

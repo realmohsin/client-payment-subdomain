@@ -2,6 +2,8 @@ client-payment-subdomain
 
 Notes: 
 
+- if existing customer goes through checkout session again, a second instance of customer is created in stripe and in our db
+
 Stripe
 - invoice.paid event occurs the first time for the one time payment + first subscription fee, then every month for just the subscription fee
 - stripe sends the webhook events checkout.session.completed and invoice.paid at the same time, 

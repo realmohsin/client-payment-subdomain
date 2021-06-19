@@ -5,6 +5,7 @@ import firebase from 'firebase/app'
 import 'firebase/auth'
 import 'firebase/firestore'
 
+// not a security risk to expose these, only identifies your project with Google's servers
 const firebaseConfig = {
   apiKey: 'AIzaSyBiTJdaDOTq7oqUJ40nVahrnUTuz8ERtPA',
   authDomain: 'client-payment-subdomain.firebaseapp.com',

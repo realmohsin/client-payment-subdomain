@@ -43,4 +43,29 @@ const sendEmailsAfterPaymentFailed = async customerEmail => {
   console.log(`Emails sent for payment failure`)
 }
 
-export { sendEmailsAfterCheckout, sendEmailsAfterPaymentFailed }
+const sendEmailsAfterSubCanceled = async (customerStripeId, customerEmail) => {
+  const msgToMe = {
+    to: 'payments.realmohsin@gmail.com', // Change to your recipient
+    from: 'real@realmohsin.com', // Change to your verified sender
+    subject: 'A subscription was canceled',
+    text: `Customer with id ${customerStripeId} canceled their subscription`,
+    html: '<strong>strong html</strong>'
+  }
+  const msgToClient = {
+    to: customerEmail, // Change to your recipient
+    from: 'real@realmohsin.com', // Change to your verified sender
+    subject: 'Web Development Service - Sorry to see you go',
+    text:
+      'If you require our services again later, feel free to contact us again.',
+    html: '<strong>strong html</strong>'
+  }
+  await sgMail.send(msgToMe)
+  await sgMail.send(msgToClient)
+  console.log(`Emails sent for subscription cancelation.`)
+}
+
+export {
+  sendEmailsAfterCheckout,
+  sendEmailsAfterPaymentFailed,
+  sendEmailsAfterSubCanceled
+}

@@ -1,4 +1,4 @@
-import stripe from '../../stripe-lib/stripe'
+import stripeForServer from '../../stripe-lib/stripe'
 import bundles from '../../data/bundles'
 
 const DOMAIN = 'http://localhost:3000/'
@@ -7,7 +7,7 @@ export default async function handler (req, res) {
   const { bundle } = req.body
 
   try {
-    const session = await stripe.checkout.sessions.create({
+    const session = await stripeForServer.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [...bundles[bundle].lineItems],
